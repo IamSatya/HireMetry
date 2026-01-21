@@ -128,31 +128,8 @@ Environment=NODE_ENV=production
 WantedBy=multi-user.target
 ```
 
-#### Frontend Service (`/etc/systemd/system/hiremetry-frontend.service`)
-
-```ini
-[Unit]
-Description=HireMetry Frontend
-After=network.target
-
-[Service]
-Type=simple
-User=www-data
-WorkingDirectory=/var/www/hiremetry/web
-ExecStart=/usr/bin/node /var/www/hiremetry/web/node_modules/.bin/serve -s dist -l 3000
-Restart=always
-RestartSec=10
-Environment=NODE_ENV=production
-
-[Install]
-WantedBy=multi-user.target
-```
-
-**Note:** For the frontend, we're using `serve` package. Install it first:
-```bash
-cd /var/www/hiremetry/web
-sudo npm install -g serve
-```
+#### Frontend Service (Not needed - served by Nginx)
+# Skip this - frontend is static files served by Nginx
 
 ### 5. Nginx Configuration
 
@@ -163,17 +140,12 @@ server {
     listen 80;
     server_name hiremetry.com www.hiremetry.com;
 
+    root /var/www/hiremetry/web/dist;
+    index index.html;
+
     # Frontend (React app)
     location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
+        try_files $uri $uri/ /index.html;
     }
 
     # Backend API
@@ -203,9 +175,7 @@ server {
 ```bash
 # Enable and start services
 sudo systemctl enable hiremetry-backend
-sudo systemctl enable hiremetry-frontend
 sudo systemctl start hiremetry-backend
-sudo systemctl start hiremetry-frontend
 
 # Enable Nginx site
 sudo ln -s /etc/nginx/sites-available/hiremetry.com /etc/nginx/sites-enabled/
@@ -230,31 +200,25 @@ sudo certbot --nginx -d hiremetry.com -d www.hiremetry.com
 
 ### 8. Update Frontend API Calls
 
-In production, update the frontend API base URL. Create a production config:
+In production, the frontend needs to call `/api/analyze-text` instead of the full URL. Update the axios call:
 
 ```javascript
-// web/src/config.ts
-const config = {
-  API_BASE_URL: process.env.NODE_ENV === 'production' 
-    ? 'https://hiremetry.com/api' 
-    : 'http://localhost:5000'
-};
+// In web/src/App.tsx, update generateFeedback function:
+const apiUrl = process.env.NODE_ENV === 'production' 
+  ? '/api/analyze-text' 
+  : 'http://localhost:5000/analyze-text';
 
-export default config;
+await axios.post(apiUrl, { text: transcript });
 ```
-
-Then update axios calls to use `config.API_BASE_URL`.
 
 ### 9. Monitoring and Logs
 
 ```bash
 # Check service status
 sudo systemctl status hiremetry-backend
-sudo systemctl status hiremetry-frontend
 
 # View logs
 sudo journalctl -u hiremetry-backend -f
-sudo journalctl -u hiremetry-frontend -f
 
 # Nginx logs
 sudo tail -f /var/log/nginx/access.log
@@ -275,7 +239,7 @@ cd ../web && npm install && npm run build
 
 # Restart services
 sudo systemctl restart hiremetry-backend
-sudo systemctl restart hiremetry-frontend
+sudo systemctl reload nginx
 ```
 
 ## API Documentation

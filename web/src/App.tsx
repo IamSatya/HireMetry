@@ -242,7 +242,10 @@ function App() {
   async function generateFeedback() {
     setLoading(true)
     try {
-      const response = await axios.post('http://localhost:5000/analyze-text', {
+      const apiUrl = import.meta.env.PROD 
+        ? '/api/analyze-text' 
+        : 'http://localhost:5000/analyze-text';
+      const response = await axios.post(apiUrl, {
         text: transcript,
       })
       // Parse the feedback from AI response
