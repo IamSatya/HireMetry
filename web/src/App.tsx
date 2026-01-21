@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import axios from 'axios'
 
 type Step = 'setup' | 'interview' | 'feedback'
 
@@ -96,7 +97,7 @@ function Card({ children, className }: { children: React.ReactNode; className?: 
   return (
     <div
       className={classNames(
-        'rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 shadow-sm shadow-black/30',
+        'rounded-2xl border border-slate-800/80 bg-slate-900/40 p-4 shadow-sm shadow-black/30 sm:p-6',
         className,
       )}
     >
@@ -114,7 +115,7 @@ function Header({ step, onReset }: { step: Step; onReset: () => void }) {
 
   return (
     <header className="sticky top-0 z-20 border-b border-slate-900/60 bg-slate-950/70 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
         <div className="flex items-center gap-3">
           <div className="grid h-10 w-10 place-items-center rounded-2xl bg-slate-100 text-slate-950 shadow-sm shadow-black/30">
             <span className="text-base font-black tracking-tight">HM</span>
@@ -240,9 +241,20 @@ function App() {
 
   async function generateFeedback() {
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 650))
-    setLoading(false)
-    setStep('feedback')
+    try {
+      const response = await axios.post('http://localhost:5000/analyze-text', {
+        text: transcript,
+      })
+      // Parse the feedback from AI response
+      // For now, assume it's mock, but in real, parse the response
+      setLoading(false)
+      setStep('feedback')
+    } catch (error) {
+      console.error(error)
+      setLoading(false)
+      // Fallback to mock
+      setStep('feedback')
+    }
   }
 
   function reset() {
@@ -256,7 +268,7 @@ function App() {
     <div className="min-h-dvh">
       <Header step={step} onReset={reset} />
 
-      <main className="mx-auto w-full max-w-6xl px-6 py-10">
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
         {step === 'setup' ? (
           <div className="grid gap-6 lg:grid-cols-5">
             <div className="lg:col-span-3">
@@ -314,7 +326,7 @@ function App() {
                     <label className="text-xs font-semibold text-slate-300">
                       Interview mode
                     </label>
-                    <div className="mt-2 grid grid-cols-3 gap-2">
+                    <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
                       {([
                         { k: 'technical', label: 'Technical' },
                         { k: 'behavioral', label: 'Behavioral' },
@@ -545,7 +557,7 @@ function App() {
                       <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        className="mt-3 h-40 w-full resize-none rounded-xl border border-slate-900 bg-slate-950 p-3 text-sm text-slate-100 outline-none focus:border-slate-700"
+                        className="mt-3 h-32 w-full resize-none rounded-xl border border-slate-900 bg-slate-950 p-3 text-sm text-slate-100 outline-none focus:border-slate-700 sm:h-40"
                         placeholder="Constraints, edge cases, tests, etc."
                       />
                       <div className="mt-3 text-xs text-slate-400">
@@ -568,7 +580,7 @@ function App() {
                     </PrimaryButton>
                   </div>
 
-                  <pre className="mt-4 overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 p-4 text-left text-xs leading-5 text-slate-200">
+                  <pre className="mt-4 overflow-auto rounded-2xl border border-slate-800 bg-slate-950 p-4 text-left text-xs leading-5 text-slate-200">
 {`// Example scaffold
 function hasDuplicate(nums: number[]): boolean {
   const seen = new Set<number>()
@@ -597,7 +609,7 @@ function hasDuplicate(nums: number[]): boolean {
                 <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-950 p-4">
                   <div className="text-xs font-semibold text-slate-300">Overall</div>
                   <div className="mt-2 flex items-end justify-between">
-                    <div className="text-4xl font-bold tracking-tight text-slate-50">
+                    <div className="text-3xl font-bold tracking-tight text-slate-50 sm:text-4xl">
                       {overall}
                     </div>
                     <div className="text-xs text-slate-400">out of 5</div>
@@ -666,7 +678,7 @@ function hasDuplicate(nums: number[]): boolean {
                   A simple, repeatable routine.
                 </div>
 
-                <div className="mt-5 grid gap-3 md:grid-cols-3">
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
                   {[
                     {
                       title: '10 min',
